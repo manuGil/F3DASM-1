@@ -19,10 +19,10 @@
 
 project = 'F3DASM'
 copyright = '2020, bessagroup'
-author = 'bessagroup'
+author = 'Bessa Group'
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.1'
+release = '2.0.1'
 
 
 # -- General configuration ---------------------------------------------------
