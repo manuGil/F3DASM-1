@@ -83,8 +83,12 @@ class DoeVars:
         and produces a pandas data frame with all combinations.
         """
 
+        # TODO: The case of Fs needs its own way to construct the array to fetch the names of the data columns.
+        # try to implement a different case in the sampling method based on the number of dimmension, if more than one
+        # then inner keys shoul become data columns
         doe_vars = copy.deepcopy(self.variables)
         
+        print(self.sampling_vars)
         # sample
         for var in self.sampling_vars:
             inner_vars = var.split('.') 
@@ -97,6 +101,7 @@ class DoeVars:
             else:
                 raise SyntaxError("DoeVars definition contains too many nested elements. A max of 3 is allowed")
     
+        # print('sampling doe', doe_vars)
         # combinations
         sampled_values = list( deserialize_dictionary(doe_vars).values() )
         combinations = create_combinations(numpy.meshgrid, sampled_values)

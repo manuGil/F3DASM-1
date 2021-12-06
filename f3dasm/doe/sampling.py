@@ -8,6 +8,7 @@ from SALib.sample import sobol_sequence
 from prettyprinter import pprint
 import pandas as pd
 
+
 def validate_range(range) -> None:
     """Checks that list of values contains two numeric values.
     If a range is passed, it will run the validation for that range.
@@ -92,6 +93,8 @@ class SamplingMethod(ABC):
             else:
                 continue
         
+        print('sampling values', selected_values)
+        # print(self.sampling_ranges)
         return selected_values
 
 
@@ -114,12 +117,14 @@ class SamplingMethod(ABC):
 class SalibSobol(SamplingMethod):
     """Computes sampling using a sobol sequence from SALib"""
 
+
     def compute_sampling(self, aprox='float') -> array:
         #----------------------------------------------------------
         # Implementation of Sampling Method
         # ----------------------------------------------------------
         # seeds for the sampling
         samples = sobol_sequence.sample(self.size, self.dimensions) 
+        print('sampling',self.sampling_ranges)
 
         # Streches sampling values toward the bounds given by the original values
         if aprox == 'float':
@@ -150,4 +155,44 @@ class NumpyLinear(SamplingMethod):
             #TODO: implement cases when samples must be integers
 
         return samples
+        
 
+if __name__ == '__main__':
+
+    # define variables for the DoE as a dictionary, for example
+    vars = {'Fs': SalibSobol(5, {'F11':[-0.15, 1], 'F12':[-0.1,0.15], 'F22':[-0.15, 1]}),
+                'R': SalibSobol(3, {'radius': [0.3, 0.5]}),
+                'particle': { 
+                    'name': 'NeoHookean',
+                    'E': [0.3, 0.5], 
+                    'nu': 0.4 
+                    } ,
+                'matrix': {  
+                    'name': 'SaintVenant',  
+                    'E': [5, 200, 300],
+                    'nu': 0.3
+                    },
+                'Vf': 0.3,
+                'Lc': 4,
+                'geometry': 'circle'
+                }
+
+    # doe = DoeVars(vars)
+
+    # print('DoEVars definition:')
+    # print(doe)
+
+    # print('\n DoEVars summary information:')
+    # print(doe.info())
+
+    # # Compute sampling and combinations
+    # doe.do_sampling()
+
+    # print('\n Pandas dataframe with compbined-sampled values:')
+    # print(doe.data)
+
+    
+
+
+
+    
