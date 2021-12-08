@@ -109,12 +109,71 @@ class DoeVars:
         # make copy of doe variables
         doe_vars = copy.deepcopy(self.variables)
         
-        print('sampling var:', self.sampling_vars)
-        # sample
+        # print('sampling var:', self.sampling_vars)
+
+        # Compute sampling for variable with a sampling method
         for var in self.sampling_vars:
             inner_vars = var.split('.') 
-            print('inner vars:', inner_vars)
-            # if len(inner_vars) == 1:
+            # print('inner vars:', inner_vars)
+            # CASES:
+            ## sampling at the top level 
+            if len(inner_vars) == 1:
+                s = doe_vars[var].compute_sampling()
+                # and sampling contains one variable, 
+                # i.e., resulting array is nx1
+                if s.shape[1] > 1:
+                    df1 = pd.DataFrame(data=s, columns=list(doe_vars[var].sampling_ranges.keys()))
+                    print(df1)
+                # when sampling contains more than one variable
+                else:
+                    print('samping with one variable')
+
+            # sampling variable at a second level that DO NOT define a group 
+            # (use OR operator). Groups contains an element which starts with 
+            # the string 'f3dasm#'
+            elif not "f3dasm#" in inner_vars[0]: 
+                print(inner_vars)
+                if len(inner_vars) == 2:
+                    # compute sampling
+                    s = doe_vars[inner_vars[0]][inner_vars[1]].compute_sampling()
+                    # convert to data frame
+                    df2 = pd.DataFrame(data=s, columns=[ inner_vars[0]+'.'+inner_vars[1] ])
+                    print(df2)
+
+                elif len(inner_vars) == 3:
+                    # compute sampling
+                    s = doe_vars[inner_vars[0]][inner_vars[1]][inner_vars[2]].compute_sampling()
+                    # convert to data frame
+                    df3 = pd.DataFrame(data=s, columns=[ inner_vars[0]+'.'+inner_vars[1]+'.'+inner_vars[2]])
+
+                else:
+                    raise ValueError("DoeVars definition contains too many nested elements. A max of 3 is allowed")
+
+            elif "f3dasm#" in inner_vars[0]: 
+                
+                #TODO: continue here
+                # a group must contain at least 2 elements besided the group id
+                if len(inner_vars) == 2: # check if group contains only one element
+                    raise SyntaxError(f'variable {inner_vars} defines a group with a single parameter. Remove ()')
+                
+                if len(inner_vars) == 3: # check group has 2 elements
+                    # remove group id
+                    inner_vars.pop(0)
+                    pass
+                elif len(inner_vars) == 4: # check group has 3 elements
+                    pass
+                else:
+                    raise ValueError("Group definition contains too many nested elements. A max of 3 is allowed")
+
+
+            else:
+                pass
+            
+            # sampling variables at second that belong to a group
+    
+
+
+
             #     print("var-ranges:", doe_vars[var].sampling_ranges.keys())
             #     doe_vars[var] = 1# samples_to_dict( doe_vars[var].compute_sampling(), doe_vars[var].sampling_ranges.keys())
             #     print('as dict', doe_vars[var])
@@ -127,7 +186,7 @@ class DoeVars:
     
         # print('sampling doe', doe_vars)
         # combinations
-        print(doe_vars)
+        # print(doe_vars)
         sampled_values = list( deserialize_dictionary(doe_vars).values() )
         combinations = create_combinations(numpy.meshgrid, sampled_values)
 
