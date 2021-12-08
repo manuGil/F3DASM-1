@@ -21,8 +21,11 @@ def print_variables(dictionary:dict):
 
     return None
 
+
 def find_sampling_vars(doe_vars: dict):
-    """Find names of DoeVars that contain a definiton of a sampling method
+    """
+    Find names of DoeVars that contain a definiton of a sampling method.
+    WARNING: only 3 levels of nesting in the inputs are checked
     Args:
         doe_vars (dict): variables defining a design of experiment
     Returns:
@@ -30,11 +33,28 @@ def find_sampling_vars(doe_vars: dict):
     """
     # expand dictionary
     df = pd.json_normalize(doe_vars)
-    vars = df.to_dict(orient='records')[0]
+    vars_level1 = df.to_dict(orient='records')[0]
 
     elements_with_functions = [] # list of names
-    [ elements_with_functions.append(var) for var in vars.keys() if isinstance(vars[var], SamplingMethod) ]
-
+    # loop over variables at the top level of serialization
+    for key, value in vars_level1.items():
+        if isinstance(value, SamplingMethod):
+            elements_with_functions.append(key)
+        # case for OR operator, 
+        # variable grouped as a tupple are combined differently
+        # then ungrouped variables, see create_combinations()
+        elif isinstance(value, tuple):
+            for grouped_var in value:
+                g_df = pd.json_normalize(grouped_var)
+                g_vars = g_df.to_dict(orient='records')[0]
+                for g_key, g_value in g_vars.items():
+                    if isinstance(g_value, SamplingMethod):
+                        elements_with_functions.append(key+'.'+g_key)
+                # elements_with_functions.append('true')
+        else:
+            continue
+    # TODO: find a generic solution this function. So that it works for 
+    # any level of nesting.
     return elements_with_functions
 
 
@@ -86,14 +106,20 @@ class DoeVars:
         # TODO: The case of Fs needs its own way to construct the array to fetch the names of the data columns.
         # try to implement a different case in the sampling method based on the number of dimmension, if more than one
         # then inner keys shoul become data columns
+
+        # convert sampling results back to dict, before doing combination, and spliting the data columns
+
         doe_vars = copy.deepcopy(self.variables)
         
-        print(self.sampling_vars)
+        print('sampling var:', self.sampling_vars)
         # sample
         for var in self.sampling_vars:
             inner_vars = var.split('.') 
+            print('inner vars:', inner_vars)
             if len(inner_vars) == 1:
-                doe_vars[var] = doe_vars[var].compute_sampling()
+                print("var-ranges:", doe_vars[var].sampling_ranges.keys())
+                doe_vars[var] = 1# samples_to_dict( doe_vars[var].compute_sampling(), doe_vars[var].sampling_ranges.keys())
+                print('as dict', doe_vars[var])
             elif len(inner_vars) == 2:
                 doe_vars[inner_vars[0]][inner_vars[1]] = doe_vars[inner_vars[0]][inner_vars[1]].compute_sampling()
             elif len(inner_vars) == 3:
@@ -103,6 +129,7 @@ class DoeVars:
     
         # print('sampling doe', doe_vars)
         # combinations
+        print(doe_vars)
         sampled_values = list( deserialize_dictionary(doe_vars).values() )
         combinations = create_combinations(numpy.meshgrid, sampled_values)
 
@@ -125,3 +152,68 @@ class DoeVars:
         else:
             self.data.to_pickle(filename)
 
+if __name__ == '__main__':
+
+
+
+
+
+
+     ### COMBINATIONS
+    vars = {'Fs': SalibSobol(4, {'F11':[10, 20], 'F12':[-0.1,0.15], 'F22':[-0.15, 1]}), 
+            'R': [0.3, 0.5], 
+            'particle': ({'P': [100, 200]}, {'Q': [15, 25]} ) 
+            }
+
+
+    f = SalibSobol(2, {'F11':[10, 20], 'F12':[-0.1,0.15], 'F22':[-0.15, 1]})
+
+    fs = f.compute_sampling()
+    
+
+
+    # print(fs)
+   
+    fd = {'F11':[10, 20], 'F12':[-0.1,0.15], 'F22':[-0.15, 1]}
+    
+    # print(fs)
+    # print(list(fd.keys()))
+    #for Arrays, samples
+    #convert to data framed from array and columns
+    df1 = pd.DataFrame(data=fs, columns=list(fd.keys()))
+    # print(df1 )
+
+    # combinations 
+    r = {'R': [0.3, 0.5]}
+    df2 = pd.DataFrame.from_dict(r)
+    # print(df2)
+
+    # using merge: many-to-many, cartesian product
+    merge_df =df1.merge(df2, how='cross')
+    # print(merge_df)
+
+    # many-to-one using index on df1
+    # merge_df2 = pd.merge(merge_df, df2, how='left')
+    p = {'particle.P': [100, 200]}
+    q = {'particle.Q': [15, 25 ]}
+    df3 = pd.DataFrame.from_dict(p)
+    df4 = pd.DataFrame.from_dict(q)
+
+    merged_df2 = df3.append(df4) 
+    # print(merged_df2)
+
+    # many to many for cartesian product
+    merged_df3 = merge_df.merge(merged_df2, how='cross')
+
+    # print(merged_df3)
+
+    # doe = DoeVars(vars)
+
+    # print('DoEVars definition:')
+    # print(doe)
+
+    # print('\n DoEVars summary information:')
+    # print(doe.info())
+
+    # Compute sampling and combinations
+    # doe.do_sampling()
