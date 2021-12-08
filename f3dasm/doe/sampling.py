@@ -26,32 +26,6 @@ def validate_range(range) -> None:
         raise TypeError("Input doesn't contain a valid range of values. Provide a list with a min and max values. E.g. [2.1, 3]") 
 
 
-def samples_to_dict(samples, column_names) -> dict:
-    """Converts sampled values to a dictionary. Each column in the samples-array becomes
-    an element of the dictionary
-
-    Args:
-        samples(numpy_array): sampled values
-        column_names (dict_keys): list of name for the data columns (elements in the dictionary)
-    
-    Returns:
-        Dictionary of length  equals to the no. of columns in the samples-array
-    """
-
-    _dictionary = {}
-
-    if len(column_names) != samples.shape[1]:
-        raise RuntimeError("sampled array and column_names must be the same length")
-    else:
-        samples_list = list(samples.T)
-
-        for name in column_names:
-            for values in samples_list:
-                _dictionary[name] = list(values)
- 
-    return _dictionary
-
-
 @dataclass
 class SamplingMethod(ABC):
     """Represets a generic sampling method for parameters with a range of values"""
