@@ -67,7 +67,7 @@ class SamplingMethod(ABC):
             else:
                 continue
         
-        print('sampling values', selected_values)
+        # print('sampling values', selected_values)
         # print(self.sampling_ranges)
         return selected_values
 
@@ -98,7 +98,7 @@ class SalibSobol(SamplingMethod):
         # ----------------------------------------------------------
         # seeds for the sampling
         samples = sobol_sequence.sample(self.size, self.dimensions) 
-        print('sampling',self.sampling_ranges)
+        # print('sampling',self.sampling_ranges)
 
         # Streches sampling values toward the bounds given by the original values
         if aprox == 'float':
