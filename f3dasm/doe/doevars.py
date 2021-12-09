@@ -336,37 +336,11 @@ class DoeVars:
                 else:
                     counter_fixed += 1
 
-
-            # if len (inner_vars) == 2:
-
-                # if isinstance(doe_vars[varf], list): # a vector
-                #     print("is a list")
-                #     df10 = pd.DataFrame({varf: doe_vars[varf]})
-                #     collector['and'].append(df10)
-                #     print(df10)
-                # else:
-                #     print('not a list')
-                #     df10 = pd.DataFrame({varf: doe_vars[varf]}, index=[0])
-                #     collector['and'].append(df10)
-                #     print(df10)
-
-        #         # print( type( doe_vars[inner_vars[0]]))
-        #         _dict = {varf: doe_vars[varf]}
-        #         df10 = pd.DataFrame.from_dict(_dict)
-        #         pd.DataFrame.from_dict(p)
-        #         # collector['and'].append(df10)
-                
-
-
-        # sampled_values = list( deserialize_dictionary(doe_vars).values() )
-        # combinations = create_combinations(numpy.meshgrid, sampled_values)
-
-        # # dataframe
-        # _columns =list( deserialize_dictionary(doe_vars).keys() )
-        # self.data = pd.DataFrame(combinations,columns=_columns)
-        # return self.data
-        # print(collector)
+        # print(collector.keys())
+        # print(collector['and'])
+        # print(collector['or'])
         return collector
+
 
     def save(self,filename):
 
