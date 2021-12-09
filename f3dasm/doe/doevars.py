@@ -103,10 +103,13 @@ class DoeVars:
 
     variables: dict
     sampling_vars: list = field(init=False)
+    fixe_vars: list = field(init=False)
     data: DataFrame = None
 
     def __post_init__(self):
-        self.sampling_vars = find_sampling_vars(self.variables)
+        classified_vars = classify_vars(self.variables)
+        self.sampling_vars = classified_vars['sampling']
+        self.fixed_vars = classified_vars['fixed']
 
     def info(self):
 
@@ -231,6 +234,7 @@ class DoeVars:
         # _columns =list( deserialize_dictionary(doe_vars).keys() )
         # self.data = pd.DataFrame(combinations,columns=_columns)
         # return self.data
+        print(collector)
         return collector
 
     def save(self,filename):
