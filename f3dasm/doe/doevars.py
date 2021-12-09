@@ -56,6 +56,8 @@ def classify_vars(doe_vars: dict):
                 for g_key, g_value in g_vars.items():
                     if isinstance(g_value, SamplingMethod):
                         sampling_variables.append('f3dasm#'+str(group_id)+'.'+key+'.'+g_key)
+                    else:
+                        fixed_variables.append('f3dasm#'+str(group_id)+'.'+key+'.'+g_key)
         else:
             fixed_variables.append(key)    
             # continue
@@ -131,7 +133,8 @@ class DoeVars:
         # make copy of doe variables
         doe_vars = copy.deepcopy(self.variables)
         
-        # print('sampling var:', self.sampling_vars)
+        print('sampling var:', self.sampling_vars)
+        print('fixed var:', self.fixed_vars)
 
         counter = 0 # counter for the case of the OR operator
         
@@ -144,6 +147,8 @@ class DoeVars:
         # Compute sampling for variable 
         # with a sampling method
         ##################################
+
+        # for var, j in zip_longest()
         for var in self.sampling_vars:
             inner_vars = var.split('.') 
             # print('inner vars:', inner_vars)
@@ -227,6 +232,24 @@ class DoeVars:
             else:
                 raise ValueError('The required operation is not implemented')
 
+        # for varf in self.fixed_vars:
+        #     inner_vars = varf.split('.')
+        #     print(inner_vars) 
+        #     # ##############################
+        #     # CASES
+        #     # AND GROUP
+        #     # ##############################
+        #     if len(inner_vars) == 1:
+        #         # print(doe_vars)
+        #         # print(type (doe_vars[varf]))
+        #         # print( type( doe_vars[inner_vars[0]]))
+        #         _dict = {varf: doe_vars[varf]}
+        #         df10 = pd.DataFrame.from_dict(_dict)
+        #         pd.DataFrame.from_dict(p)
+        #         # collector['and'].append(df10)
+
+
+
         # sampled_values = list( deserialize_dictionary(doe_vars).values() )
         # combinations = create_combinations(numpy.meshgrid, sampled_values)
 
@@ -234,7 +257,7 @@ class DoeVars:
         # _columns =list( deserialize_dictionary(doe_vars).keys() )
         # self.data = pd.DataFrame(combinations,columns=_columns)
         # return self.data
-        print(collector)
+        # print(collector)
         return collector
 
     def save(self,filename):
@@ -283,12 +306,25 @@ if __name__ == '__main__':
     # print(df1 )
 
     # combinations 
-    r = {'R': [0.3, 0.5]}
-    df2 = pd.DataFrame.from_dict(r)
+    r = {'R': [0.3, 5]}
+    # df2 = pd.DataFrame(data=r['R'], columns=r.keys())
+    print(list(r.values()))
+    if isinstance(r.values(), list): # a vector
+        print("is a list")
+    else:
+        print('not a list')
+    # if not isinstance(r.values(), list): # a scalar
+    #     print('not a list')
+    #     df2 = pd.DataFrame(r, index=[0])
+    #     print(df2)
+    # else:
+    #     pass
+        # df2 = pd.DataFrame.from_dict(r)
+
     # print(df2)
 
     # using merge: many-to-many, cartesian product
-    merge_df =df1.merge(df2, how='cross')
+    # merge_df =df1.merge(df2, how='cross')
     # print(merge_df)
 
     # many-to-one using index on df1
@@ -302,7 +338,7 @@ if __name__ == '__main__':
     # print(merged_df2)
 
     # many to many for cartesian product
-    merged_df3 = merge_df.merge(merged_df2, how='cross')
+    # merged_df3 = merge_df.merge(merged_df2, how='cross')
 
     # print(merged_df3)
 
