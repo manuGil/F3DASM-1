@@ -99,6 +99,28 @@ def apply_sampling(sampling_var, column_names):
     return data_frame
 
 
+def scalar_vector2dataframe(var_name: str, var_value ):
+    """Converts name and value of DoE variable of type scalar or vector
+    to pandas data frame.
+    
+    Parameters
+    -----------
+    + var_name (string): name of variable in Doe definition
+    + var_value (scalar or list): value of variable in Doe definition
+    
+    Returns
+    ------- 
+    Pandas data frame
+    """
+    if isinstance(var_value, list): # a vector
+        # print("is a list")
+        df = pd.DataFrame({var_name: var_value})    
+    else: # a scalar
+        # print('not a list')
+        df = pd.DataFrame({var_name: var_value}, index=[0])
+    
+    return df
+
 @dataclass
 class DoeVars:
     """Parameters for the design of experiments"""
@@ -136,8 +158,9 @@ class DoeVars:
         print('sampling var:', self.sampling_vars)
         print('fixed var:', self.fixed_vars)
 
-        counter = 0 # counter for the case of the OR operator
-        
+        counter_sampled = 0 # counter for sampling variables  using OR operator
+        counter_fixed = 0 # counter for fixed variables  using OR operator
+
         # collects data frames grouped by operator:
         # Data frames in the 'and' group will be combined using cartesian product
         # Data frames in the 'or' group will be combined by appeding columns and rows
@@ -205,7 +228,7 @@ class DoeVars:
                 # Apply sampling based on the number of nested varibles for the 
                 # OR operator
                 elif len(inner_v) == 2:
-                    df4 = apply_sampling(doe_vars[inner_v[0]][counter][inner_v[1]], [ inner_v[0]+'.'+inner_v[1] ])
+                    df4 = apply_sampling(doe_vars[inner_v[0]][counter_sampled][inner_v[1]], [ inner_v[0]+'.'+inner_v[1] ])
 
                     collector['or'].append(df4)
 
@@ -214,7 +237,7 @@ class DoeVars:
                 elif len(inner_v) == 3:
                             
                     df5 = apply_sampling(
-                                    doe_vars[inner_v[0]][counter][inner_v[1]][inner_v[2]], 
+                                    doe_vars[inner_v[0]][counter_sampled][inner_v[1]][inner_v[2]], 
                                     [ inner_v[0]+'.'+inner_v[1]+'.'+inner_v[2]]
                                     )  
 
@@ -224,43 +247,115 @@ class DoeVars:
                     raise ValueError("DoeVars definition contains too many nested elements. A max of 3 is allowed")
 
                 # When group ids don't match, restart the counter
-                if inner_vars[0] != "f3dasm#" + str(counter):
-                    counter = 0
+                if inner_vars[0] != "f3dasm#" + str(counter_sampled):
+                    counter_sampled = 0
                 else:
-                    counter += 1
+                    counter_sampled += 1
 
             else:
                 raise ValueError('The required operation is not implemented')
 
+        # ################################
+        # FIXED VARIABLES
+        ##################################
         for varf in self.fixed_vars:
             inner_vars = varf.split('.')
             print(inner_vars) 
             # ##############################
-            # CASES
-            # AND GROUP
+            # AND GROUP (operator)
             # ##############################
             if len(inner_vars) == 1:
 
                 # print(doe_vars)
-                print((doe_vars[varf]))
-
-                if isinstance(doe_vars[varf], list): # a vector
-                    print("is a list")
-                    df10 = pd.DataFrame(doe_vars[varf])
-                    collector['and'].append(df10)
-                    print(df2)
+                # print((doe_vars[varf]))
+              
+                df10 = scalar_vector2dataframe(varf, doe_vars[varf])
+                # print(df10)
+                collector['and'].append(df10)
+            
+            ## sampling variable at a second level that DO NOT define a group 
+            # (use OR operator). Groups contains an element which starts with 
+            # the string 'f3dasm#'
+            elif not "f3dasm#" in inner_vars[0]: 
+                print(inner_vars)
+                if len(inner_vars) == 2:
+                    
+                    df11 = scalar_vector2dataframe(inner_vars[0]+'.'+inner_vars[1], doe_vars[inner_vars[0]][inner_vars[1]])
+                    collector['and'].append(df11)
+                
+                elif len(inner_vars) == 3:
+                    
+                    df12 = scalar_vector2dataframe(inner_vars[0]+'.'+inner_vars[1]+'.'+inner_vars[2], doe_vars[inner_vars[0]][inner_vars[1]][inner_vars[2]])
+                    collector['and'].append(df12)
+                    print(df12)
+                
                 else:
-                    print('not a list')
-                    df2 = pd.DataFrame({varf: doe_vars[varf]}, index=[0])
-                    collector['and'].append(df10)
-                    print(df2)
+                    raise ValueError("DoeVars definition contains too many nested elements. A max of 3 is allowed")
+
+            # ##########################
+            # OR GROUP
+            # ##########################
+            elif "f3dasm#" in inner_vars[0]:
+                
+                inner_v = copy.deepcopy(inner_vars)
+                print('innerv in fixed',inner_v)
+                # remove group id
+                inner_v.pop(0)
+                
+                # print('target', doe_vars[inner_v[0]] [counter] [inner_v[1]])
+                
+                # apply sampling to nested variable in the OR operator group
+                if len(inner_v) == 1:
+                    # Malformed tupple, containing one element
+                    raise SyntaxError(f'Group defining OR operator requires at least two variables: {inner_v}')
+
+                # Apply sampling based on the number of nested varibles for the 
+                # OR operator
+                elif len(inner_v) == 2:
+                    df14 = scalar_vector2dataframe(inner_v[0]+'.'+inner_v[1], doe_vars[inner_v[0]][counter_fixed][inner_v[1]])
+                    collector['or'].append(df14)
+
+                    print(df14)
+
+                elif len(inner_v) == 3:
+                    df15 = scalar_vector2dataframe(inner_v[0]+'.'+inner_v[1]+'.'+inner_v[2], doe_vars[inner_v[0]][counter_fixed][inner_v[1]][inner_v[2]])
+                            
+                    # df15 = apply_sampling(
+                    #                 doe_vars[inner_v[0]][counter][inner_v[1]][inner_v[2]], 
+                    #                 [ inner_v[0]+'.'+inner_v[1]+'.'+inner_v[2]]
+                    #                 )  
+
+                    collector['or'].append(df5)                  
+                    print(df5)
+                # else:
+                #     raise ValueError("DoeVars definition contains too many nested elements. A max of 3 is allowed")
+
+                # # When group ids don't match, restart the counter
+                if inner_vars[0] != "f3dasm#" + str(counter_fixed):
+                    counter_fixed = 0
+                else:
+                    counter_fixed += 1
+
+
+            # if len (inner_vars) == 2:
+
+                # if isinstance(doe_vars[varf], list): # a vector
+                #     print("is a list")
+                #     df10 = pd.DataFrame({varf: doe_vars[varf]})
+                #     collector['and'].append(df10)
+                #     print(df10)
+                # else:
+                #     print('not a list')
+                #     df10 = pd.DataFrame({varf: doe_vars[varf]}, index=[0])
+                #     collector['and'].append(df10)
+                #     print(df10)
 
         #         # print( type( doe_vars[inner_vars[0]]))
         #         _dict = {varf: doe_vars[varf]}
         #         df10 = pd.DataFrame.from_dict(_dict)
         #         pd.DataFrame.from_dict(p)
         #         # collector['and'].append(df10)
-                pass
+                
 
 
         # sampled_values = list( deserialize_dictionary(doe_vars).values() )
