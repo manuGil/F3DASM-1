@@ -232,22 +232,35 @@ class DoeVars:
             else:
                 raise ValueError('The required operation is not implemented')
 
-        # for varf in self.fixed_vars:
-        #     inner_vars = varf.split('.')
-        #     print(inner_vars) 
-        #     # ##############################
-        #     # CASES
-        #     # AND GROUP
-        #     # ##############################
-        #     if len(inner_vars) == 1:
-        #         # print(doe_vars)
-        #         # print(type (doe_vars[varf]))
+        for varf in self.fixed_vars:
+            inner_vars = varf.split('.')
+            print(inner_vars) 
+            # ##############################
+            # CASES
+            # AND GROUP
+            # ##############################
+            if len(inner_vars) == 1:
+
+                # print(doe_vars)
+                print((doe_vars[varf]))
+
+                if isinstance(doe_vars[varf], list): # a vector
+                    print("is a list")
+                    df10 = pd.DataFrame(doe_vars[varf])
+                    collector['and'].append(df10)
+                    print(df2)
+                else:
+                    print('not a list')
+                    df2 = pd.DataFrame({varf: doe_vars[varf]}, index=[0])
+                    collector['and'].append(df10)
+                    print(df2)
+
         #         # print( type( doe_vars[inner_vars[0]]))
         #         _dict = {varf: doe_vars[varf]}
         #         df10 = pd.DataFrame.from_dict(_dict)
         #         pd.DataFrame.from_dict(p)
         #         # collector['and'].append(df10)
-
+                pass
 
 
         # sampled_values = list( deserialize_dictionary(doe_vars).values() )
@@ -306,13 +319,17 @@ if __name__ == '__main__':
     # print(df1 )
 
     # combinations 
-    r = {'R': [0.3, 5]}
+    r = {'R': [0.3, 0.5]} 
     # df2 = pd.DataFrame(data=r['R'], columns=r.keys())
-    print(list(r.values()))
-    if isinstance(r.values(), list): # a vector
+    # print(list(r.values()))
+    if isinstance(r['R'], list): # a vector
         print("is a list")
+        df2 = pd.DataFrame(r)
+        print(df2)
     else:
         print('not a list')
+        df2 = pd.DataFrame(r, index=[0])
+        print(df2)
     # if not isinstance(r.values(), list): # a scalar
     #     print('not a list')
     #     df2 = pd.DataFrame(r, index=[0])
