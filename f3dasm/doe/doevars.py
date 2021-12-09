@@ -22,27 +22,29 @@ def print_variables(dictionary:dict):
     return None
 
 
-def find_sampling_vars(doe_vars: dict):
+def classify_vars(doe_vars: dict):
     """
-    Find names of DoeVars that contain a definiton of a sampling method.
+    Classify DoeVars  into fixed and sampling variables. 
+    Sampling variables have values that are instance of SamplingMethod
     WARNING: only 3 levels of nesting are checked in the input.
     Args:
         doe_vars (dict): variables defining a design of experiment
     Returns:
-        list of names
+        dictonary with list of variable-names
     """
     # expand dictionary
     df = pd.json_normalize(doe_vars)
     vars_level1 = df.to_dict(orient='records')[0]
 
-    elements_with_functions = [] # list of names
+    sampling_variables = [] # list of names
+    fixed_variables =[]
     # loop over variables at the top level of serialization
     for key, value in vars_level1.items():
         # id to keep track of which variable belog to the same group
         # group ids will will start with f3dams# followed by the value group_id
         group_id = 0
         if isinstance(value, SamplingMethod):
-            elements_with_functions.append(key)
+            sampling_variables.append(key)
 
         # case for OR operator, 
         # variable grouped as a tupple are combined differently
@@ -53,13 +55,14 @@ def find_sampling_vars(doe_vars: dict):
                 g_vars = g_df.to_dict(orient='records')[0]
                 for g_key, g_value in g_vars.items():
                     if isinstance(g_value, SamplingMethod):
-                        elements_with_functions.append('f3dasm#'+str(group_id)+'.'+key+'.'+g_key)
+                        sampling_variables.append('f3dasm#'+str(group_id)+'.'+key+'.'+g_key)
         else:
-            continue
+            fixed_variables.append(key)    
+            # continue
         group_id+=1
     # TODO: find a generic solution this function. So that it works for 
     # any level of nesting.
-    return elements_with_functions
+    return {'fixed': fixed_variables, 'sampling': sampling_variables}
 
 
 def deserialize_dictionary(nested_dict: dict):
