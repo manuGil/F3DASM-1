@@ -48,7 +48,7 @@ def classify_vars(doe_vars: dict):
 
         # case for OR operator, 
         # variable grouped as a tupple are combined differently
-        # then ungrouped variables, see create_combinations()
+        # then ungrouped variables, 
         elif isinstance(value, tuple):
             for grouped_var in value:
                 g_df = pd.json_normalize(grouped_var)
@@ -167,14 +167,13 @@ class DoeVars:
         # collects data frames grouped by operator:
         # Data frames in the 'and' group will be combined using cartesian product
         # Data frames in the 'or' group will be combined by appeding columns and rows
-        collector = {'and': [], 'or': []} 
+        collector = {'and': [], 'or': {}} 
         
         # ################################
         # Compute sampling for variable 
         # with a sampling method
         ##################################
 
-        # for var, j in zip_longest()
         for var in self.sampling_vars:
             inner_vars = var.split('.') 
             # print('inner vars:', inner_vars)
@@ -219,6 +218,7 @@ class DoeVars:
                 
                 inner_v = copy.deepcopy(inner_vars)
                 # remove group id
+                group_id = inner_v[0]
                 inner_v.pop(0)
                 
                 # print('target', doe_vars[inner_v[0]] [counter] [inner_v[1]])
@@ -233,7 +233,11 @@ class DoeVars:
                 elif len(inner_v) == 2:
                     df4 = apply_sampling(doe_vars[inner_v[0]][counter_sampled][inner_v[1]], [ inner_v[0]+'.'+inner_v[1] ])
 
-                    collector['or'].append(df4)
+                    # controls group_id exists in collector
+                    if group_id in collector['or'].keys():
+                        collector['or'][group_id].append(df4)
+                    else:
+                        collector['or'][group_id] = [df4]
 
                     # print('df4', df4)
 
@@ -244,8 +248,12 @@ class DoeVars:
                                     [ inner_v[0]+'.'+inner_v[1]+'.'+inner_v[2]]
                                     )  
 
-                    collector['or'].append(df5)                  
-                    # print(df5)
+                    # controls group_id exists in collector
+                    if group_id in collector['or'].keys():
+                        collector['or'][group_id].append(df5)
+                    else:
+                        collector['or'][group_id] = [df5]
+
                 else:
                     raise ValueError("DoeVars definition contains too many nested elements. A max of 3 is allowed")
 
@@ -302,6 +310,7 @@ class DoeVars:
                 
                 inner_v = copy.deepcopy(inner_vars)
                 print('innerv in fixed',inner_v)
+                group_id = inner_v[0]
                 # remove group id
                 inner_v.pop(0)
                 
@@ -316,20 +325,31 @@ class DoeVars:
                 # OR operator
                 elif len(inner_v) == 2:
                     df14 = scalar_vector2dataframe(inner_v[0]+'.'+inner_v[1], doe_vars[inner_v[0]][counter_fixed][inner_v[1]])
-                    collector['or'].append(df14)
+                    
+                    # controls group_id exists in collector
+                    if group_id in collector['or'].keys():
+                        collector['or'][group_id].append(df14)
+                    else:
+                        collector['or'][group_id] = [df14]
 
                     # print(df14)
 
                 elif len(inner_v) == 3:
                     df15 = scalar_vector2dataframe(inner_v[0]+'.'+inner_v[1]+'.'+inner_v[2], doe_vars[inner_v[0]][counter_fixed][inner_v[1]][inner_v[2]])
                     
-                    print('or 3:', inner_v)
+                    # print('or 3:', inner_v)
                     # df15 = apply_sampling(
                     #                 doe_vars[inner_v[0]][counter][inner_v[1]][inner_v[2]], 
                     #                 [ inner_v[0]+'.'+inner_v[1]+'.'+inner_v[2]]
                     #                 )  
 
-                    collector['or'].append(df15)                  
+                    # controls group_id exists in collector
+                    if group_id in collector['or'].keys():
+                        collector['or'][group_id].append(df15)
+                    else:
+                        collector['or'][group_id] = [df15]
+
+                    # collector['or'].append(df15)                  
                     # print(df15)
                 # else:
                 #     raise ValueError("DoeVars definition contains too many nested elements. A max of 3 is allowed")
@@ -375,6 +395,7 @@ class DoeVars:
             for item in range(1,len(_ands)):
                 and_df = and_df.merge(_ands[item], how='cross')
 
+        
         for df in _ors:
             or_df = or_df.append(df)
         
