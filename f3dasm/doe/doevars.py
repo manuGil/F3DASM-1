@@ -121,6 +121,8 @@ def scalar_vector2dataframe(var_name: str, var_value ):
     
     return df
 
+
+
 @dataclass
 class DoeVars:
     """Parameters for the design of experiments"""
@@ -134,6 +136,7 @@ class DoeVars:
         classified_vars = classify_vars(self.variables)
         self.sampling_vars = classified_vars['sampling']
         self.fixed_vars = classified_vars['fixed']
+        # print('classified variables', classified_vars)
 
     def info(self):
 
@@ -260,7 +263,7 @@ class DoeVars:
         ##################################
         for varf in self.fixed_vars:
             inner_vars = varf.split('.')
-            print(inner_vars) 
+            # print(inner_vars) 
             # ##############################
             # AND GROUP (operator)
             # ##############################
@@ -287,7 +290,7 @@ class DoeVars:
                     
                     df12 = scalar_vector2dataframe(inner_vars[0]+'.'+inner_vars[1]+'.'+inner_vars[2], doe_vars[inner_vars[0]][inner_vars[1]][inner_vars[2]])
                     collector['and'].append(df12)
-                    print(df12)
+                    # print(df12)
                 
                 else:
                     raise ValueError("DoeVars definition contains too many nested elements. A max of 3 is allowed")
@@ -315,18 +318,19 @@ class DoeVars:
                     df14 = scalar_vector2dataframe(inner_v[0]+'.'+inner_v[1], doe_vars[inner_v[0]][counter_fixed][inner_v[1]])
                     collector['or'].append(df14)
 
-                    print(df14)
+                    # print(df14)
 
                 elif len(inner_v) == 3:
                     df15 = scalar_vector2dataframe(inner_v[0]+'.'+inner_v[1]+'.'+inner_v[2], doe_vars[inner_v[0]][counter_fixed][inner_v[1]][inner_v[2]])
-                            
+                    
+                    print('or 3:', inner_v)
                     # df15 = apply_sampling(
                     #                 doe_vars[inner_v[0]][counter][inner_v[1]][inner_v[2]], 
                     #                 [ inner_v[0]+'.'+inner_v[1]+'.'+inner_v[2]]
                     #                 )  
 
-                    collector['or'].append(df5)                  
-                    print(df5)
+                    collector['or'].append(df15)                  
+                    # print(df15)
                 # else:
                 #     raise ValueError("DoeVars definition contains too many nested elements. A max of 3 is allowed")
 
@@ -339,8 +343,46 @@ class DoeVars:
         # print(collector.keys())
         # print(collector['and'])
         # print(collector['or'])
+        print('collector info:')
+        print(collector)
+        # print('items', len(collector))
+        # print()
         return collector
 
+
+    def combine(self):
+        "Combines fixed and sampling variables in single data frame"
+
+        dataframes = self.do_sampling()
+        # separate and's and or's
+        _ands = dataframes['and']
+        _ors = dataframes['or']
+
+        # and_df = _ands[0]
+        or_df = pd.DataFrame()
+
+        # must check if there's any and's 
+        if len(_ands) == 0:
+            # initialize an emty dataframe
+            and_df = pd.DataFrame()
+        elif len(_ands) == 1:
+            # return the dataframe
+            and_df = _ands[0]
+        else:
+            # initialize dataframe
+            and_df = _ands[0]
+            print(and_df)
+            for item in range(1,len(_ands)):
+                and_df = and_df.merge(_ands[item], how='cross')
+
+        for df in _ors:
+            or_df = or_df.append(df)
+        
+        # print(and_df)
+        print(or_df)
+        
+        return None
+    
 
     def save(self,filename):
 
@@ -359,16 +401,11 @@ class DoeVars:
 if __name__ == '__main__':
 
 
-
-
-
-
      ### COMBINATIONS and sampling
     vars = {'Fs': SalibSobol(4, {'F11':[10, 20], 'F12':[-0.1,0.15], 'F22':[-0.15, 1]}), 
             'R': [0.3, 0.5], 
             'particle': ({'P': [100, 200]}, {'Q': [15, 25]} ) 
             }
-
 
     f = SalibSobol(2, {'F11':[10, 20], 'F12':[-0.1,0.15], 'F22':[-0.15, 1]})
 
