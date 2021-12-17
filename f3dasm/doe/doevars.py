@@ -40,9 +40,11 @@ def classify_vars(doe_vars: dict):
     fixed_variables =[]
     # loop over variables at the top level of serialization
     for key, value in vars_level1.items():
-        # id to keep track of which variable belog to the same group
-        # group ids will will start with f3dams# followed by the value group_id
+        # ids to keep track of which variable belong to the same group and item 
+        # in the group.
+        # group ids start with f3dams# followed by the value group_id
         group_id = 0
+        item_id = 0
         if isinstance(value, SamplingMethod):
             sampling_variables.append(key)
 
@@ -55,9 +57,11 @@ def classify_vars(doe_vars: dict):
                 g_vars = g_df.to_dict(orient='records')[0]
                 for g_key, g_value in g_vars.items():
                     if isinstance(g_value, SamplingMethod):
-                        sampling_variables.append('f3dasm#'+str(group_id)+'.'+key+'.'+g_key)
+                        sampling_variables.append('f3dasm#'+str(group_id)+'.item#'+str(item_id)+'.'+key+'.'+g_key)
                     else:
-                        fixed_variables.append('f3dasm#'+str(group_id)+'.'+key+'.'+g_key)
+                        fixed_variables.append('f3dasm#'+str(group_id)+'.item#'+str(item_id)+'.'+key+'.'+g_key)
+                item_id+=1
+                # print(item_id)
         else:
             fixed_variables.append(key)    
             # continue
@@ -176,6 +180,7 @@ class DoeVars:
 
         for var in self.sampling_vars:
             inner_vars = var.split('.') 
+            # print(collector['or'])
             # print('inner vars:', inner_vars)
             # CASES:
             # ##########################
@@ -219,7 +224,13 @@ class DoeVars:
                 inner_v = copy.deepcopy(inner_vars)
                 # remove group id
                 group_id = inner_v[0]
+                item_id = inner_v[1]
+                # print(inner_v)
+                
                 inner_v.pop(0)
+                inner_v.pop(0)
+                # print(inner_v)
+
                 
                 # print('target', doe_vars[inner_v[0]] [counter] [inner_v[1]])
                 
@@ -233,11 +244,18 @@ class DoeVars:
                 elif len(inner_v) == 2:
                     df4 = apply_sampling(doe_vars[inner_v[0]][counter_sampled][inner_v[1]], [ inner_v[0]+'.'+inner_v[1] ])
 
+                    print('>> hit df4')
+                    print(group_id, item_id)
+                    print(df4)
                     # controls group_id exists in collector
                     if group_id in collector['or'].keys():
-                        collector['or'][group_id].append(df4)
+                        # print('>> hit df4')
+                        if item_id in collector['or'][group_id].keys():
+                            collector['or'][group_id][item_id].append(df4)
+                        else:
+                            collector['or'][group_id][item_id] = [df4]
                     else:
-                        collector['or'][group_id] = [df4]
+                        collector['or'][group_id] = {item_id: [df4] }
 
                     # print('df4', df4)
 
@@ -248,11 +266,18 @@ class DoeVars:
                                     [ inner_v[0]+'.'+inner_v[1]+'.'+inner_v[2]]
                                     )  
 
+                    print('>> hit df5')
+                    print(group_id, item_id)
+                    print(df5)
                     # controls group_id exists in collector
                     if group_id in collector['or'].keys():
-                        collector['or'][group_id].append(df5)
-                    else:
-                        collector['or'][group_id] = [df5]
+                        # print('>> hit df5')
+                        if item_id in collector['or'][group_id].keys(): # group id and item exist
+                            collector['or'][group_id][item_id].append(df5)
+                        else: # item id doesn't exits in group
+                            collector['or'][group_id][item_id] = [df5]
+                    else: # group id doesn't exist
+                        collector['or'][group_id] = {item_id: [df5] }
 
                 else:
                     raise ValueError("DoeVars definition contains too many nested elements. A max of 3 is allowed")
@@ -271,6 +296,7 @@ class DoeVars:
         ##################################
         for varf in self.fixed_vars:
             inner_vars = varf.split('.')
+            # print(collector['or'])
             # print(inner_vars) 
             # ##############################
             # AND GROUP (operator)
@@ -288,7 +314,7 @@ class DoeVars:
             # (use OR operator). Groups contains an element which starts with 
             # the string 'f3dasm#'
             elif not "f3dasm#" in inner_vars[0]: 
-                print(inner_vars)
+                # print(inner_vars)
                 if len(inner_vars) == 2:
                     
                     df11 = scalar_vector2dataframe(inner_vars[0]+'.'+inner_vars[1], doe_vars[inner_vars[0]][inner_vars[1]])
@@ -308,10 +334,13 @@ class DoeVars:
             # ##########################
             elif "f3dasm#" in inner_vars[0]:
                 
+                print('inner var or-fixed', inner_vars[0])
                 inner_v = copy.deepcopy(inner_vars)
-                print('innerv in fixed',inner_v)
+                # print('innerv in fixed',inner_v)
                 group_id = inner_v[0]
+                item_id = inner_v[1]
                 # remove group id
+                inner_v.pop(0)
                 inner_v.pop(0)
                 
                 # print('target', doe_vars[inner_v[0]] [counter] [inner_v[1]])
@@ -326,11 +355,19 @@ class DoeVars:
                 elif len(inner_v) == 2:
                     df14 = scalar_vector2dataframe(inner_v[0]+'.'+inner_v[1], doe_vars[inner_v[0]][counter_fixed][inner_v[1]])
                     
+                    print('>> hit df14')
+                    print(group_id, item_id)
+                    print(df15)
                     # controls group_id exists in collector
                     if group_id in collector['or'].keys():
-                        collector['or'][group_id].append(df14)
+                        # print('>> hit df14')
+
+                        if item_id in collector['or'][group_id].keys():
+                            collector['or'][group_id][item_id].append(df14)
+                        else:
+                            collector['or'][group_id][item_id] = [df14]
                     else:
-                        collector['or'][group_id] = [df14]
+                        collector['or'][group_id] = {item_id: [df14] }
 
                     # print(df14)
 
@@ -342,12 +379,22 @@ class DoeVars:
                     #                 doe_vars[inner_v[0]][counter][inner_v[1]][inner_v[2]], 
                     #                 [ inner_v[0]+'.'+inner_v[1]+'.'+inner_v[2]]
                     #                 )  
-
+                    print('>> hit df15')
+                    print(group_id, item_id)
+                    print(df15)
                     # controls group_id exists in collector
                     if group_id in collector['or'].keys():
-                        collector['or'][group_id].append(df15)
+                        
+                        if item_id in collector['or'][group_id].keys():
+                            collector['or'][group_id][item_id].append(df15)
+                            print('new var in item:', item_id)
+                        else:
+                            collector['or'][group_id][item_id] = [df15]
+                            print('new item', item_id)
                     else:
-                        collector['or'][group_id] = [df15]
+                        collector['or'][group_id] = {item_id: [df15] }
+                        print('new group: ',item_id)
+
 
                     # collector['or'].append(df15)                  
                     # print(df15)
@@ -379,28 +426,48 @@ class DoeVars:
         _ors = dataframes['or']
 
         # and_df = _ands[0]
-        or_df = pd.DataFrame()
+        # or_df = pd.DataFrame()
+
 
         # must check if there's any and's 
-        if len(_ands) == 0:
-            # initialize an emty dataframe
-            and_df = pd.DataFrame()
-        elif len(_ands) == 1:
-            # return the dataframe
-            and_df = _ands[0]
-        else:
-            # initialize dataframe
-            and_df = _ands[0]
-            print(and_df)
-            for item in range(1,len(_ands)):
-                and_df = and_df.merge(_ands[item], how='cross')
+        top_ands = merge_ands(_ands)
 
+        groups_df = []
         
-        for df in _ors:
-            or_df = or_df.append(df)
+        for group_id in _ors.keys():
+            group_items = []
+            or_dframe = pd.DataFrame()
+            # apply and operations to vars in item
+            for item_id in _ors[group_id].keys():
+                item_and = merge_ands(_ors[group_id][item_id])
+                group_items.append(item_and)
+
+            # apply or operation to items in same group
+            for item in group_items:
+                or_dframe.append(item)
+            
+            groups_df.append(or_dframe)
         
-        # print(and_df)
-        print(or_df)
+            
+
+            
+            
+            
+                
+            
+        
+        # if group_ands is None:
+        #     return top_ands
+        # else:
+
+        #     pass
+        
+
+        # for df in _ors:
+        #     or_df = or_df.append(df)
+        
+        # # print(and_df)
+        # print(or_df)
         
         return None
     
@@ -418,6 +485,32 @@ class DoeVars:
             print("There's no data to save. Run DoeVars.sample_doevars() first")
         else:
             self.data.to_pickle(filename)
+
+
+def merge_ands(dataframes: list):
+    """Merge a list of data frames using a catesian product
+    Args:
+        dataframes (list): list of pandas dataframes to be merged
+    
+    Returns:
+        cartesian product of pandas dataframes 
+    """
+
+    if len(dataframes) == 0:
+        # initialize an epty dataframe
+        df = pd.DataFrame()
+    elif len(dataframes) == 1:
+        # return the dataframe
+        df = dataframes[0]
+    else:
+        # initialize dataframe
+        df = dataframes[0]
+        # print(and_df)
+        for item in range(1,len(dataframes)):
+            df = df.merge(dataframes[item], how='cross')
+
+    return df
+
 
 if __name__ == '__main__':
 
