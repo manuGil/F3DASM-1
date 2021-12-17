@@ -15,19 +15,21 @@ from f3dasm.doe.sampling import SalibSobol
 
 
 # define variables for the DoE as a dictionary, for example
-vars = {'Fs': SalibSobol(2, {'F11':[-0.15, 1], 'F12':[-0.1,0.15], 'F22':[-0.15, 1]}),
-        'R': SalibSobol(3, {'radius': [0.3, 0.5]}),
-            'particle': ({ 'NeoHookean':
-                            {'E': SalibSobol(3,{'e':[0.3, 0.5]}), 
-                            'nu': 0.4 
-                            } },
-                        {'SaintVenant':  
-                            {'E': [5, 200, 300],
-                            'nu': SalibSobol(5,{'e':[0.3, 0.5]})
+vars = { # and operator
+        'Fs': SalibSobol(2, {'F11':[-0.15, 1], 'F12':[-0.1,0.15], 'F22':[-0.15, 1]}),
+        'R': SalibSobol(3, {'radius': [0.3, 0.5]}), # var as function
+            'particle': ( # or operator
+                        { 'NeoHookean': # operand 1 (item)
+                            {'E0': SalibSobol(3,{'e':[0.3, 0.5]}), # and operator
+                            'nu0': 0.4
+                            } }, # TODO: fix issue when number of varialbes is more than 2
+                        {'SaintVenant':   # operand 2 (item)
+                            {'E1': [5, 200, 300], # vector
+                            'nu1': SalibSobol(5,{'e':[0.3, 0.5]})
                             } },
                             ),
             'matrix': {  
-                'name': 'SaintVenant',  
+                'name': 'SaintVenant',  # constant
                 'E': SalibSobol(3,{'e':[0.3, 0.5]}),
                 'nu': 0.3
             },
@@ -36,12 +38,11 @@ vars = {'Fs': SalibSobol(2, {'F11':[-0.15, 1], 'F12':[-0.1,0.15], 'F22':[-0.15, 
             'geometry': 'circle'
             }
 
-# vars = {'Fs': SalibSobol(2, {'F11':[-0.15, 1], 'F12':[-0.1,0.15], 'F22':[-0.15, 1]}), 'R': [0.3, 0.5] }
+
+# vars = {'Fs': SalibSobol(3, {'F11':[-0.15, 1], 'F12':[-0.1,0.15], 'F22':[-0.15, 1]}), 'R': 3 }
 
 
 doe = DoeVars(vars)
-
-
 
 print('DoEVars definition:')
 # print(doe.sampling_vars)
@@ -52,5 +53,8 @@ print('\n DoEVars summary information:')
 # # Compute sampling and combinations
 doe.do_sampling()
 
+# doe.combine()
 # print('\n Pandas dataframe with compbined-sampled values:')
-# # print(doe.data)
+# print(doe.data)
+
+# doe.data
